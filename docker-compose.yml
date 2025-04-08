@@ -63,8 +63,8 @@ services:
     build:
       context: ./frontend
       # Pass the public API URL during build time
-      args:
-        NEXT_PUBLIC_API_URL: ${PUBLIC_BACKEND_URL:-http://localhost:8000} # Use variable from .env, default to localhost
+      # args: # <-- Comment out this line
+      #  NEXT_PUBLIC_API_URL: ${PUBLIC_BACKEND_URL:-http://localhost:8000} # <-- Comment out this line
     container_name: frontend_app
     # env_file:
     #   - .env # Keep this if you need other vars at runtime
