@@ -62,17 +62,15 @@ services:
   frontend:
     build:
       context: ./frontend
-      # Pass build-time arguments if needed (e.g., API URL)
-      # args:
-      #   NEXT_PUBLIC_API_URL: http://backend:8000
+      # Pass the public API URL during build time
+      args:
+        NEXT_PUBLIC_API_URL: ${PUBLIC_BACKEND_URL:-http://localhost:8000} # Use variable from .env, default to localhost
     container_name: frontend_app
-    env_file:
-      - .env # Load variables from .env file if needed by the running app
+    # env_file:
+    #   - .env # Keep this if you need other vars at runtime
     environment:
-      # Environment variables needed at runtime by Next.js
-      # This ensures the frontend knows how to reach the backend container
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
-      # Add other NEXT_PUBLIC_ variables if needed at runtime
+      # Runtime env var might still be needed by some server-side parts of Next.js
+      NEXT_PUBLIC_API_URL: ${PUBLIC_BACKEND_URL:-http://localhost:8000}
     ports:
       - "3000:3000"
     depends_on:
