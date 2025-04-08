@@ -1,0 +1,89 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-hr_platform_db}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production} # Change this password!
+    ports:
+      # Expose port 5432 only to other containers by default
+      # If you need to connect from host, uncomment the line below
+      # - "5432:5432"
+      - "5433:5432" # Exposing on 5433 to avoid conflicts if you have postgres locally on 5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-hr_platform_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: backend_api
+    env_file:
+      - .env # Load variables from .env file in the project root
+    environment:
+      # Override or provide defaults if not in .env
+      POSTGRES_SERVER: db # Service name of the postgres container
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme_in_production} # Should match db service
+      POSTGRES_DB: ${POSTGRES_DB:-hr_platform_db} # Should match db service
+      # Ensure CORS allows the frontend container and potentially localhost for direct access
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://frontend:3000}
+      # It's highly recommended to set a strong SECRET_KEY in your .env file
+      SECRET_KEY: ${SECRET_KEY:-your_default_secret_key_change_me}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      # Other variables like BOT_TOKEN, HH_API keys will be loaded from .env
+    volumes:
+      # Mount volumes for persistent storage if needed
+      - ./backend/uploads:/app/uploads
+      - ./backend/resumes:/app/resumes
+      - ./backend/documents:/app/documents
+      # - ./backend/logs:/app/logs # Uncomment if needed
+      # Optional: Mount code for development (reflects changes without rebuild)
+      # Be careful with this in production
+      # - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy # Wait for db to be ready
+    # Command to run migrations and then start the server
+    # Make sure alembic is installed (it should be via requirements.txt)
+    # and alembic.ini is configured correctly
+    command: sh -c "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
+    # Use --reload only for development, remove for production
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      # Pass build-time arguments if needed (e.g., API URL)
+      # args:
+      #   NEXT_PUBLIC_API_URL: http://backend:8000
+    container_name: frontend_app
+    env_file:
+      - .env # Load variables from .env file if needed by the running app
+    environment:
+      # Environment variables needed at runtime by Next.js
+      # This ensures the frontend knows how to reach the backend container
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8000}
+      # Add other NEXT_PUBLIC_ variables if needed at runtime
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    # Optional: Mount code for development (reflects changes without rebuild)
+    # Requires changes in Dockerfile to handle node_modules correctly
+    # - ./frontend:/app
+    # - /app/node_modules # Prevent host node_modules from overwriting container's
+    # - /app/.next # Prevent host .next from overwriting container's build
+    restart: unless-stopped
+
+volumes:
+  postgres_data: # Define the named volume for PostgreSQL data persistence
+    driver: local 

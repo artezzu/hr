@@ -1,0 +1,212 @@
+# Команды для запуска проекта Abstract HR Platform
+
+# =============================================
+# 1. ЛОКАЛЬНАЯ РАЗРАБОТКА
+# =============================================
+
+# 1.1. Настройка и запуск Backend
+# Перейти в директорию backend
+cd backend
+
+# Создать виртуальное окружение Python
+python -m venv venv
+
+# Активировать виртуальное окружение
+# Для Windows:
+.\venv\Scripts\activate
+# Для Linux/Mac:
+# source venv/bin/activate
+
+# Установить зависимости
+pip install -r requirements.txt
+
+# Инициализировать базу данных и создать тестовые данные
+python setup_db.py
+
+# Запустить FastAPI сервер для разработки
+uvicorn main:app --reload
+
+# 1.2. Настройка и запуск Frontend
+# В новом терминале перейти в директорию frontend
+cd frontend
+
+# Установить зависимости Node.js
+npm install
+
+# Запустить Next.js сервер разработки
+npm run dev
+
+# 1.3. Настройка и запуск Telegram бота
+# В новом терминале перейти в директорию backend
+cd backend
+
+# Активировать виртуальное окружение (если не активировано)
+# Для Windows:
+.\venv\Scripts\activate
+# Для Linux/Mac:
+# source venv/bin/activate
+
+# Убедиться, что файл .env содержит правильный BOT_TOKEN и API_URL
+# Запустить бота
+python bot.py
+
+# =============================================
+# 2. ПРОЦЕСС РАЗРАБОТКИ И ДЕПЛОЯ
+# =============================================
+
+# 2.1. Локальная разработка (на вашем ПК)
+# Путь к проекту: C:\platformanew\platformatest\
+
+# Frontend (разработка):
+cd frontend
+npm run dev  # Запускает сервер разработки на http://localhost:3000
+
+# Backend (разработка):
+cd backend
+.\venv\Scripts\activate
+uvicorn main:app --reload  # Запускает сервер разработки на http://localhost:8000
+
+# 2.2. Автоматическое обновление на сервере
+# После внесения изменений в код:
+
+# Для Frontend:
+# 1. Проверить работу локально
+npm run build  # Убедиться, что сборка проходит без ошибок
+
+# 2. Загрузить измененные файлы на сервер через FileZilla:
+# - Локальный путь: C:\platformanew\platformatest\frontend\src
+# - Удаленный путь: /opt/platformatest/frontend/src
+
+# 3. Подключиться к серверу и пересобрать frontend:
+ssh root@your_server_ip
+cd /opt/platformatest/frontend
+npm run build
+sudo supervisorctl restart platformatest-frontend
+
+# Для Backend:
+# 1. Проверить работу локально
+# 2. Загрузить измененные файлы через FileZilla:
+# - Локальный путь: C:\platformanew\platformatest\backend
+# - Удаленный путь: /opt/platformatest/backend
+
+# 3. Подключиться к серверу и перезапустить backend:
+ssh root@your_server_ip
+cd /opt/platformatest/backend
+source venv/bin/activate
+sudo supervisorctl restart platformatest-backend
+
+# ВАЖНО: Процесс обновления
+# 1. Всегда сначала тестируйте изменения локально
+# 2. Делайте резервные копии перед загрузкой на сервер
+# 3. Проверяйте логи после деплоя:
+sudo tail -f /var/log/platformatest-frontend.err.log
+sudo tail -f /var/log/platformatest-backend.err.log
+
+# =============================================
+# 3. КОМАНДЫ НА СЕРВЕРЕ
+# =============================================
+
+# 3.1. Frontend
+# Подключиться к серверу
+ssh root@your_server_ip
+
+# Перейти в директорию frontend
+cd /opt/platformatest/frontend
+
+# Если были изменения в package.json
+npm install
+
+# Собрать production версию
+npm run build
+
+# Перезапустить frontend
+sudo supervisorctl restart platformatest-frontend
+
+# 3.2. Backend
+# Перейти в директорию backend
+cd /opt/platformatest/backend
+
+# Активировать виртуальное окружение
+source venv/bin/activate
+
+# Если были изменения в requirements.txt
+pip install -r requirements.txt
+
+# Перезапустить backend
+sudo supervisorctl restart platformatest-backend
+
+# =============================================
+# 4. ПРОВЕРКА И ОТЛАДКА
+# =============================================
+
+# Проверка статуса сервисов
+sudo supervisorctl status
+
+# Просмотр логов
+# Frontend логи
+sudo tail -f /var/log/platformatest-frontend.err.log
+
+# Backend логи
+sudo tail -f /var/log/platformatest-backend.err.log
+
+# Если порт занят (3000 - frontend, 8000 - backend)
+sudo fuser -k 3000/tcp
+sudo fuser -k 8000/tcp
+
+# Полный перезапуск всех сервисов
+sudo supervisorctl stop platformatest-frontend platformatest-backend
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start platformatest-frontend platformatest-backend
+
+# =============================================
+# 5. УПРАВЛЕНИЕ TELEGRAM БОТОМ
+# =============================================
+
+# Правильная последовательность остановки бота:
+# 1. Остановить все процессы бота (если есть)
+sudo pkill -f "python /opt/platformatest/backend/bot.py"
+# 2. Остановить процесс в supervisor
+sudo supervisorctl stop platformatest-bot
+
+# Правильная последовательность запуска бота:
+# 1. Запустить бота через supervisor
+sudo supervisorctl start platformatest-bot
+# 2. Проверить статус
+sudo supervisorctl status platformatest-bot
+
+# Перезапуск бота (полная последовательность):
+sudo pkill -f "python /opt/platformatest/backend/bot.py"  # Убить все процессы бота
+sudo supervisorctl stop platformatest-bot                 # Остановить в supervisor
+sudo supervisorctl start platformatest-bot               # Запустить заново
+sudo supervisorctl status platformatest-bot              # Проверить статус
+
+# Просмотр логов бота:
+sudo tail -f /var/log/platformatest-bot.err.log
+
+# ВАЖНО: При изменении кода бота
+# 1. Загрузить измененные файлы на сервер через FileZilla
+# 2. Перейти в директорию backend
+cd /opt/platformatest/backend
+# 3. Активировать виртуальное окружение
+source venv/bin/activate
+# 4. Выполнить полную последовательность перезапуска (команды выше)
+# 5. Проверить логи
+
+# =============================================
+# ПРИМЕЧАНИЯ
+# =============================================
+# - Frontend доступен по адресу: http://your_server_ip:3000
+# - Backend API доступен по адресу: http://your_server_ip:8000
+# - Данные для входа в систему:
+#   Email: admin@abstract.com
+#   Пароль: admin123
+
+# ВАЖНО:
+# 1. Всегда проверяйте сборку локально перед загрузкой
+# 2. Делайте резервные копии перед крупными изменениями
+# 3. Проверяйте логи после каждого деплоя
+# 4. При обновлении зависимостей обновляйте package.json и requirements.txt
+# 5. Разработка ведется локально на ПК, затем изменения загружаются на сервер
+# 6. Используйте FileZilla для быстрой загрузки файлов
+# 7. После загрузки файлов всегда перезапускайте соответствующие сервисы 
