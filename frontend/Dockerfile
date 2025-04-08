@@ -6,7 +6,7 @@ FROM node:18-alpine
 # ARG NEXT_PUBLIC_API_URL
 # Set environment variable for build process
 # ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=http://109.73.198.72:8000 # Hardcoded API URL
+ENV NEXT_PUBLIC_API_URL=http://109.73.198.72:8000 
 
 # Set the working directory in the container
 WORKDIR /app
