@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isSameMonth, 
          addMonths, subMonths, parseISO, isEqual, startOfDay, isSameDay } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -32,7 +32,7 @@ interface Task {
 }
 
 // Компонент Календарь
-export default function CalendarPage() {
+function CalendarContent() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
@@ -1285,4 +1285,13 @@ function getEndOfWeek(date: Date): Date {
 
 function capitalize(string: string): string {
   return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Экспортируем компонент с Suspense
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={<div className="p-3">Загрузка календаря...</div>}>
+      <CalendarContent />
+    </Suspense>
+  );
 } 
